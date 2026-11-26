@@ -41,6 +41,7 @@ podman run --rm -p 8080:8080 ghcr.io/kshekar16/greentopographysimulator
 
 Open **<http://localhost:8080>** once the log says `App running at`. The first run
 downloads the image, about 1 GB. After that, building the scene takes about 15 seconds.
+Use **New green** in the toolbar to generate a different green without restarting.
 
 To save files, mount a folder at `/data`:
 
@@ -91,7 +92,7 @@ Options for every command:
 
 | Option | Default | Meaning |
 |---|---|---|
-| `--seed N` | `0` | Random seed. Each seed gives a different green outline and undulations. |
+| `--seed N` | `0` | Which green to generate, 0–99999, or `random`. Each seed gives a different outline and undulations, and the same seed always gives the same green. |
 | `--stimp FT` | `10` | Green speed in feet. About 8 is slow, 10 medium, 12 fast, and 13 or more tournament. |
 | `--scan TYPE` | `terrestrial` | `terrestrial` (three tripod scanners), `aerial` (drone), or `none`. |
 
@@ -106,6 +107,10 @@ default 5) and `--hide surface points putts` (layers to start hidden).
 - **Layers:** checkboxes toggle the **surface** (coloured by slope), the **LIDAR points**
   (coloured by elevation), and the **putts**. Gold putts were holed, white putts stopped,
   and red putts ran off the green.
+- **New greens:** in the browser, the toolbar has a **Seed** and a **Stimp** box.
+  **Generate** rebuilds the scene from them (or press Enter in either box), and
+  **New green** picks a random seed. The summary above the view updates to match.
+  In the desktop window, press `n` for a new random green.
 - **Desktop window only:** `r` resets the camera and `q` quits.
 
 ### What gets printed
@@ -113,7 +118,7 @@ default 5) and `--hide surface points putts` (layers to start hidden).
 Each run prints a summary of the generated scene, for example:
 
 ```
-Green: 507 m^2, slope mean 2.8%, p90 5.5%, max 6.6%; 66% at <=3%; 0.0% too steep to hold at stimp 10 (> 7.9%)
+Green #0: 507 m^2, slope mean 2.8%, p90 5.5%, max 6.6%; 66% at <=3%; 0.0% too steep to hold at stimp 10 (> 7.9%)
 Valid pin area: 119 m^2
 Hole at (13.00, 21.50)
 10 putts in 0.12s, 0 holed (aimed straight, no break read)
@@ -165,6 +170,7 @@ given as the Stimpmeter reading in feet.
 | Path | Contents |
 |---|---|
 | `src/greensim/cli.py` | The `greensim` command |
+| `src/greensim/scene.py` | Builds the demo scene (green, hole, putts, scan) from a seed |
 | `src/greensim/constants.py` | Rules of Golf values, physical constants, defaults |
 | `src/greensim/terrain/` | Height field, green outline, procedural generators |
 | `src/greensim/physics/` | Stimpmeter relations, ball-roll integrator, hole |

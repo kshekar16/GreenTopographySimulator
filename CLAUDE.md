@@ -35,6 +35,8 @@ Python 3.12 is installed per-user at `C:\Users\kavee\AppData\Local\Programs\Pyth
 - Directions are azimuths in degrees counter-clockwise from +x. In `sample_green`, +y is the back of the green.
 - `HeightField.z` is read-only after construction, because the gradient grids are derived from it once.
 - `greensim.viz` is kept out of `greensim/__init__` so the core does not import VTK or matplotlib.
+- `greensim.scene.build_scene(seed, stimp, scan)` builds the demo scene for every command. The viewers take a `rebuild(seed, stimp)` callable to regenerate in place: `serve` runs it in a worker thread and only draws on the main thread, so keep `build_scene` free of VTK.
+- In `viz/web.py`, always pass `server=server` to `plotter_ui`. Otherwise it registers its buttons on trame's default server and their trigger names collide with ours.
 - Physics model: pure rolling (the skid phase is ignored), with constant rolling deceleration from the stimp reading and a `(5/7)·g·sinθ` slope pull. `tests/test_physics.py` checks it against the Brede formula. Keep that test passing when changing the integrator.
 - `constants.MAX_CAPTURE_SPEED` and the hole-capture curve are unverified placeholders (see research notes §6).
 - Simulated scans and real scans should both go through `lidar.points_to_heightfield`.

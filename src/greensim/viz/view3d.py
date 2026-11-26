@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Sequence
+from typing import TYPE_CHECKING, Callable, Sequence
 
 import numpy as np
 import pyvista as pv
@@ -13,6 +13,9 @@ from greensim.physics.ball import PuttResult
 from greensim.physics.hole import Hole
 from greensim.terrain.boundary import GreenBoundary
 from greensim.terrain.heightfield import HeightField
+
+if TYPE_CHECKING:
+    from greensim.scene import Scene
 
 _BAR_RIGHT = {"vertical": True, "position_x": 0.88, "position_y": 0.25, "height": 0.5, "width": 0.05}
 _BAR_LEFT = {"vertical": True, "position_x": 0.05, "position_y": 0.25, "height": 0.5, "width": 0.05}
@@ -28,7 +31,7 @@ def _surface_mesh(field: HeightField, exaggeration: float) -> pv.StructuredGrid:
     return grid
 
 
-def build_scene(
+def draw_scene(
     plotter: pv.Plotter,
     field: HeightField | None = None,
     boundary: GreenBoundary | None = None,
@@ -105,19 +108,31 @@ def build_scene(
     return layers
 
 
-def _add_layer_toggles(plotter: pv.Plotter, layers: dict[str, list]) -> None:
-    """Checkbox per non-empty layer, stacked in the top-left corner."""
+def _set_camera(plotter: pv.Plotter, zoom: float) -> None:
+    plotter.camera_position = "iso"
+    plotter.camera.elevation = -10
+    plotter.reset_camera()
+    plotter.camera.zoom(zoom)
+
+
+def _add_layer_toggles(plotter: pv.Plotter, layers: dict[str, list], visible: dict[str, bool]) -> None:
+    """Checkbox per non-empty layer, stacked in the top-left corner.
+
+    The callbacks look the actors up in ``layers`` at click time, so the same
+    checkboxes keep working after the scene is redrawn into that dict.
+    """
     y = plotter.window_size[1] - 60
-    for name, actors in layers.items():
-        if not actors:
+    for name in ("surface", "points", "putts"):
+        if not layers.get(name):
             continue
 
-        def toggle(state, actors=actors):
-            for a in actors:
+        def toggle(state, name=name):
+            visible[name] = bool(state)
+            for a in layers.get(name, []):
                 a.SetVisibility(state)
 
-        plotter.add_checkbox_button_widget(toggle, value=bool(actors[0].GetVisibility()), position=(10, y), size=30)
-        plotter.add_text(name, position=(50, y + 4), font_size=10)
+        plotter.add_checkbox_button_widget(toggle, value=visible[name], position=(10, y), size=30)
+        plotter.add_text(name, position=(50, y + 4), font_size=10, name=f"label_{name}")
         y -= 40
 
 
@@ -133,22 +148,61 @@ def show(
     screenshot: str | None = None,
     off_screen: bool = False,
     hide: Sequence[str] = (),
+    scene: "Scene | None" = None,
+    rebuild: "Callable[[int, float], Scene] | None" = None,
 ) -> None:
     """Open an interactive window. With ``off_screen=True``, only save ``screenshot``.
 
     ``hide`` lists layers ("surface", "points", "putts") that start hidden. In the
     window, checkboxes in the top-left toggle each layer.
+
+    If ``rebuild(seed, stimp)`` is given, pressing ``n`` in the window replaces the
+    scene with a new random green (``scene`` supplies the current stimp).
     """
     plotter = pv.Plotter(off_screen=off_screen, window_size=(1400, 900))
     plotter.set_background("#1e1e24", top="#3a4a5c")
-    layers = build_scene(plotter, field, boundary, cloud, putts, hole, exaggeration, surface_scalars, cloud_scalars)
-    for name in hide:
-        for actor in layers.get(name, []):
-            actor.SetVisibility(False)
+    visible = {name: name not in hide for name in ("surface", "points", "putts")}
+    layers: dict[str, list] = {}
+
+    def draw(f, b, c, p, h, title: str | None) -> None:
+        layers.clear()
+        layers.update(draw_scene(plotter, f, b, c, p, h, exaggeration, surface_scalars, cloud_scalars))
+        for name, actors in layers.items():
+            for actor in actors:
+                actor.SetVisibility(visible[name])
+        if title:
+            plotter.add_text(title, position="upper_edge", font_size=11, name="title")
+
+    hint = "press n for a new green" if rebuild is not None and not off_screen else None
+    title = f"Green #{scene.seed}" if scene is not None else None
+    draw(field, boundary, cloud, putts, hole, " - ".join(t for t in (title, hint) if t))
     if not off_screen:
-        _add_layer_toggles(plotter, layers)
-    plotter.camera_position = "iso"
-    plotter.camera.elevation = -10
-    plotter.reset_camera()
-    plotter.camera.zoom(1.6)
+        _add_layer_toggles(plotter, layers, visible)
+
+    if rebuild is not None and not off_screen:
+        from greensim.scene import NoValidPinError, random_seed
+
+        stimp = scene.stimp if scene is not None else 10.0
+
+        def new_green() -> None:
+            seed = random_seed()
+            plotter.add_text(f"Generating green #{seed}...", position="upper_edge", font_size=11, name="title")
+            plotter.render()
+            try:
+                s = rebuild(seed, stimp)
+            except NoValidPinError as exc:
+                plotter.add_text(f"{exc} - press n again", position="upper_edge", font_size=11, name="title")
+                plotter.render()
+                return
+            camera = plotter.camera_position
+            plotter.clear()  # actors, text and colour bars
+            draw(s.field, s.boundary, s.cloud, s.putts, s.hole, f"Green #{s.seed} - {hint}")
+            plotter.clear_button_widgets()  # re-add checkboxes with their labels, which clear() removed
+            _add_layer_toggles(plotter, layers, visible)
+            plotter.camera_position = camera
+            plotter.render()
+
+        plotter.add_key_event("n", new_green)
+
+    _set_camera(plotter, 1.6)
     plotter.show(screenshot=screenshot, auto_close=True)
