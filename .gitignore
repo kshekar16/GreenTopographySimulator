@@ -1,7 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
 build/
-cmake-build-*/
-*.exe
-*.obj
-*.pdb
-*.dll
-*.lib
+dist/
+
+# Generated outputs
+data/
+*.las
+*.laz
+*.ply
+*.png
+!docs/**/*.png

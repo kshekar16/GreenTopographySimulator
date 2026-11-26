@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "greensim"
+version = "0.1.0"
+description = "Golf putting-green topography, ball-roll and LIDAR simulator"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "matplotlib>=3.8",
+    "pyvista>=0.43",
+    "laspy>=2.5",
+]
+
+[project.optional-dependencies]
+web = ["trame>=3.6", "trame-vtk>=2.8", "trame-vuetify>=2.7", "trame-pyvista>=0.3"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+greensim = "greensim.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
