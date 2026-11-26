@@ -14,10 +14,14 @@ def hold_limit_pct(stimp_ft: float) -> float:
     """Steepest slope (percent) a ball can rest on at this green speed.
 
     The ball holds while the slope pull (5/7)*g*sin(theta) is at most the rolling
-    deceleration. At stimp 10 the limit is about 7.8 %, and at stimp 13 about 6.0 %.
+    deceleration. At stimp 10 the limit is about 7.87 %, and at stimp 13 about 6.04 %.
+    On an implausibly slow green (stimp below about 0.8 ft) the ball holds on any
+    slope, and the result is ``inf``.
     """
     s = stimp_to_deceleration(stimp_ft) / (ROLLING_SPHERE_FACTOR * GRAVITY)
-    return 100.0 * s / np.sqrt(1.0 - s * s)  # sin -> tan, as percent grade
+    if s >= 1.0:
+        return float("inf")
+    return float(100.0 * s / np.sqrt(1.0 - s * s))  # sin -> tan, as percent grade
 
 
 def slope_stats(

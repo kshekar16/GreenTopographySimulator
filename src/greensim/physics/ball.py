@@ -116,7 +116,10 @@ def roll_ball(
         if on_green is not None and not on_green[int(round((y - y0) / h)), int(round((x - x0) / h))]:
             outcome = "off_green"
             break
-        if new_speed == 0.0 and pull * math.sqrt(g2) <= a_roll:
+        # Holds if the along-slope pull (5/7)*g*sin(theta) is within rolling resistance
+        # (same criterion as analysis.hold_limit_pct). pull*|grad| is the horizontal
+        # projection, so undo it: sin(theta) = |grad| / sqrt(1 + |grad|^2).
+        if new_speed == 0.0 and pull * math.sqrt(g2 * (1.0 + g2)) <= a_roll:
             outcome = "stopped"
             break
         if step % record_every == 0:

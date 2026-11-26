@@ -47,12 +47,14 @@ def serve(
         for actor in layers[n]:
             actor.SetVisibility(n not in hide)
 
-    @state.change(*[f"show_{n}" for n in names])
     def _toggle(**kwargs):
         for n in names:
             for actor in layers[n]:
                 actor.SetVisibility(bool(kwargs[f"show_{n}"]))
         ctrl.view_update()
+
+    if names:  # state.change() with no keys would fire on every state change
+        state.change(*[f"show_{n}" for n in names])(_toggle)
 
     with SinglePageLayout(server) as layout:
         layout.title.set_text("Green Topography Simulator")

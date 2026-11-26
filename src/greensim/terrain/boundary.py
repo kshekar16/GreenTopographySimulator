@@ -84,6 +84,8 @@ class GreenBoundary:
         """Distance (m) from each on-green node to the nearest off-green node; 0 off the green.
 
         Grid-based (exact Euclidean distance transform), accurate to about one cell.
+        Nodes beyond the grid count as off the green, so an outline that runs past
+        the grid edge is treated as ending there rather than continuing unseen.
         """
-        inside = self.mask(field)
-        return ndimage.distance_transform_edt(inside) * field.spacing
+        inside = np.pad(self.mask(field), 1, constant_values=False)
+        return ndimage.distance_transform_edt(inside)[1:-1, 1:-1] * field.spacing

@@ -54,6 +54,8 @@ def build_scene(seed: int = 0, stimp: float = 10.0, scan: str = "terrestrial", v
     # Hole: the valid pin location closest to a back-left target.
     mask = valid_pin_mask(field_, boundary)
     log(f"Valid pin area: {mask.sum() * field_.spacing**2:.0f} m^2")
+    if not mask.any():
+        raise SystemExit("No valid hole location on this green (nowhere is <=3% and 12 ft from the edge); try another --seed")
     X, Y = field_.meshgrid()
     d2 = np.where(mask, (X - 13.0) ** 2 + (Y - 20.0) ** 2, np.inf)
     j, i = np.unravel_index(np.argmin(d2), d2.shape)
@@ -122,15 +124,14 @@ def _cmd_scan(args) -> None:
 
     if args.scan == "none":
         sys.exit("--scan none produces no points")
-    s = build_scene(args.seed, args.stimp, args.scan)
     out = Path(args.output)
+    writers = {".las": write_las, ".ply": write_ply}
+    writer = writers.get(out.suffix.lower())
+    if writer is None:
+        sys.exit("output must end in .las or .ply (.laz needs a compression backend and is not supported)")
+    s = build_scene(args.seed, args.stimp, args.scan)
     out.parent.mkdir(parents=True, exist_ok=True)
-    if out.suffix.lower() == ".ply":
-        write_ply(out, s.cloud)
-    elif out.suffix.lower() in (".las", ".laz"):
-        write_las(out, s.cloud)
-    else:
-        sys.exit("output must end in .las or .ply")
+    writer(out, s.cloud)
     print(f"Wrote {out} ({len(s.cloud):,} points)")
 
 

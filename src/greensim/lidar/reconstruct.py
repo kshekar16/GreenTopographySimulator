@@ -19,7 +19,9 @@ def points_to_heightfield(
     outside the convex hull. Returns ``(field, coverage)``. ``coverage`` is the
     number of points per cell, and 0 means the cell was filled in.
     """
-    xyz = np.asarray(xyz, dtype=float)
+    xyz = np.asarray(xyz, dtype=float).reshape(-1, 3)
+    if len(xyz) == 0:
+        raise ValueError("point cloud is empty")
     if extent is None:
         extent = (xyz[:, 0].min(), xyz[:, 0].max(), xyz[:, 1].min(), xyz[:, 1].max())
     xmin, xmax, ymin, ymax = extent
@@ -29,6 +31,8 @@ def points_to_heightfield(
     i = np.rint((xyz[:, 0] - xmin) / spacing).astype(int)
     j = np.rint((xyz[:, 1] - ymin) / spacing).astype(int)
     keep = (i >= 0) & (i < nx) & (j >= 0) & (j < ny)
+    if not keep.any():
+        raise ValueError("no points fall inside the requested extent")
     flat = j[keep] * nx + i[keep]
     count = np.bincount(flat, minlength=nx * ny)
     total = np.bincount(flat, weights=xyz[keep, 2], minlength=nx * ny)

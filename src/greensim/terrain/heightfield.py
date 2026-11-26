@@ -9,7 +9,7 @@ from typing import Callable
 import numpy as np
 
 
-@dataclass
+@dataclass(eq=False)
 class HeightField:
     """Surface heights on a regular grid.
 

@@ -42,3 +42,17 @@ def test_boundary_area_contains_and_edge_distance():
     dist = b.edge_distance_grid(field)
     j, i = int(round(10 / 0.05)), int(round(10 / 0.05))
     assert dist[j, i] == pytest.approx(4.0, abs=0.06)  # nearest edge is the minor axis
+
+
+def test_edge_distance_treats_grid_border_as_edge():
+    # Outline is larger than the grid, so the green runs off every side.
+    field = HeightField.from_function(lambda X, Y: 0.0 * X, 10, 10, 0.1)
+    boundary = GreenBoundary.ellipse(5, 5, 20, 20)
+    d = boundary.edge_distance_grid(field)
+    assert d[50, 0] == pytest.approx(0.1)  # border node: one cell from the unseen outside
+    assert d[50, 50] == pytest.approx(5.1, abs=0.01)
+
+
+def test_heightfield_equality_is_identity():
+    a = HeightField.from_function(lambda X, Y: 0.0 * X, 1, 1, 0.5)
+    assert a == a and a != HeightField(a.z, a.spacing)

@@ -73,3 +73,20 @@ def test_point_cloud_io_roundtrip(tmp_path, fmt):
     assert len(back) == len(cloud)
     np.testing.assert_allclose(back.xyz, cloud.xyz, atol=1e-4)
     np.testing.assert_allclose(back.intensity, cloud.intensity, atol=1e-4)
+
+
+def test_hold_limit_on_very_slow_green_is_infinite():
+    assert hold_limit_pct(0.5) == float("inf")
+
+
+def test_terrestrial_scan_rejects_upward_rays():
+    field = build(10, 10, 0.1, [tilt(1.0, 0.0)])
+    with pytest.raises(ValueError):
+        terrestrial_scan(field, (5, 5), elevation_range_deg=(-10.0, 5.0))
+
+
+def test_reconstruct_rejects_points_outside_extent():
+    with pytest.raises(ValueError):
+        points_to_heightfield(np.array([[50.0, 50.0, 0.0]]), 0.1, (0, 10, 0, 10))
+    with pytest.raises(ValueError):
+        points_to_heightfield(np.empty((0, 3)), 0.1)

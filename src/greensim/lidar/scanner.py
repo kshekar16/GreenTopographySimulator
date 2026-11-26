@@ -20,7 +20,7 @@ import numpy as np
 from greensim.terrain.heightfield import HeightField
 
 
-@dataclass
+@dataclass(eq=False)
 class PointCloud:
     xyz: np.ndarray  # (N, 3) metres
     intensity: np.ndarray  # (N,) in [0, 1]
@@ -86,6 +86,8 @@ def terrestrial_scan(
     source_id: int = 0,
 ) -> PointCloud:
     """Ray-cast scan from a tripod at ``position``, ``instrument_height`` m above the ground."""
+    if elevation_range_deg[1] >= 0.0 or elevation_range_deg[0] > elevation_range_deg[1]:
+        raise ValueError("elevation_range_deg must be (low, high) with both below 0: rays have to point down")
     rng = np.random.default_rng(seed)
     sx, sy = position
     sz = float(field.height(sx, sy)) + instrument_height
