@@ -1,0 +1,13 @@
+# Read by both podman and docker build
+.git
+.github
+.venv
+.pytest_cache
+**/__pycache__
+**/*.egg-info
+data
+docs
+examples
+tests
+build
+dist
